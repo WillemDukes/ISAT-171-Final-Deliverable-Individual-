@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ISAT 171 Final Deliverable (Individual).html</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #020617;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(59,130,246,0.10), transparent 40%),
+      radial-gradient(circle at 80% 60%, rgba(239,68,68,0.10), transparent 45%),
+      linear-gradient(rgba(148,163,184,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,0.06) 1px, transparent 1px);
+    background-size: auto, auto, 40px 40px, 40px 40px;
+    min-height: 100vh;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .glow-blue { box-shadow: 0 0 20px rgba(56,189,248,0.35), inset 0 0 20px rgba(56,189,248,0.05); }
+  .glow-red { box-shadow: 0 0 20px rgba(248,113,113,0.35), inset 0 0 20px rgba(248,113,113,0.05); }
+  .glow-emerald { box-shadow: 0 0 20px rgba(52,211,153,0.35), inset 0 0 20px rgba(52,211,153,0.05); }
+  .glow-purple { box-shadow: 0 0 20px rgba(168,85,247,0.35), inset 0 0 20px rgba(168,85,247,0.05); }
+  .text-glow-blue { text-shadow: 0 0 12px rgba(56,189,248,0.6); }
+  .text-glow-red { text-shadow: 0 0 12px rgba(248,113,113,0.6); }
+  .text-glow-emerald { text-shadow: 0 0 12px rgba(52,211,153,0.6); }
+  .text-glow-purple { text-shadow: 0 0 12px rgba(168,85,247,0.6); }
+  .panel {
+    background: linear-gradient(180deg, rgba(15,23,42,0.85), rgba(2,6,23,0.85));
+    border: 1px solid rgba(148,163,184,0.18);
+    backdrop-filter: blur(6px);
+  }
+  .scanline::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px,
+      transparent 1px, transparent 4px);
+    pointer-events: none;
+  }
+
+  /* Top tab navigation */
+  .nav-tab {
+    position: relative;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: #64748b;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .nav-tab:hover { color: #e2e8f0; background: rgba(148,163,184,0.04); }
+  .nav-tab[data-variant="now"].is-active { color: #6ee7b7; border-bottom-color: #10b981; text-shadow: 0 0 10px rgba(16,185,129,0.5); }
+  .nav-tab[data-variant="overview"].is-active { color: #7dd3fc; border-bottom-color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+  .nav-tab[data-variant="paths"].is-active { color: #d8b4fe; border-bottom-color: #a855f7; text-shadow: 0 0 10px rgba(168,85,247,0.5); }
+  .nav-tab[data-variant="race"].is-active { color: #fca5a5; border-bottom-color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.5); }
+  .nav-tab[data-variant="slow"].is-active { color: #7dd3fc; border-bottom-color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+  .nav-tab[data-variant="cited"].is-active { color: #fcd34d; border-bottom-color: #f59e0b; text-shadow: 0 0 10px rgba(245,158,11,0.5); }
+
+  .corner-tag {
+    position: absolute; top: -1px; left: -1px;
+    padding: 2px 8px; font-size: 10px; letter-spacing: 0.2em;
+    background: rgba(2,6,23,0.95);
+    border-right: 1px solid rgba(148,163,184,0.2);
+    border-bottom: 1px solid rgba(148,163,184,0.2);
+  }
+  .chart-wrap { position: relative; height: 320px; }
+  @media (min-width: 768px) { .chart-wrap { height: 420px; } }
+
+  .tab-pane { display: none; }
+  .tab-pane.is-active { display: block; }
+</style>
+</head>
+<body class="text-slate-200">
+
+<div class="border-b border-slate-800 bg-slate-950/90 mono text-[11px] tracking-widest text-slate-400 sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+    <div class="flex items-center gap-3">
+      <span>AI-2027 SCENARIO VISUALIZER</span>
+    </div>
+    <div class="hidden sm:flex items-center gap-4">
+      <span>SECTOR: FRONTIER LABS</span>
+      <span>CLASSIFICATION: PUBLIC</span>
+      <span id="clock">--:--:-- UTC</span>
+    </div>
+  </div>
+</div>
+
+<nav class="border-b border-slate-800 bg-slate-950/80 sticky top-[34px] z-30 backdrop-blur">
+  <div class="max-w-7xl mx-auto px-2 sm:px-4 overflow-x-auto">
+    <div class="flex items-stretch">
+      <button class="nav-tab is-active" data-tab="overview" data-variant="overview">
+        <span class="opacity-60 mr-2">01</span>OVERVIEW
+      </button>
+      <button class="nav-tab" data-tab="paths" data-variant="paths">
+        <span class="opacity-60 mr-2">02</span>THE PATHS OF AI PROGRESSION
+      </button>
+      <button class="nav-tab" data-tab="race" data-variant="race">
+        <span class="opacity-60 mr-2">03</span>THE UNREGULATED ARMS RACE
+      </button>
+      <button class="nav-tab" data-tab="slow" data-variant="slow">
+        <span class="opacity-60 mr-2">04</span>COORDINATED GOVERNANCE
+      </button>
+      <button class="nav-tab" data-tab="now" data-variant="now">
+        <span class="opacity-60 mr-2">05</span>WHERE WE ARE NOW
+      </button>
+      <button class="nav-tab" data-tab="cited" data-variant="cited">
+        <span class="opacity-60 mr-2">06</span>WORKS CITED
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+
+  <section id="pane-overview" class="tab-pane is-active">
+    <div class="relative overflow-hidden">
+      <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight">
+        The <span class="text-sky-400 text-glow-blue">2027</span>
+        <br class="hidden sm:block"/>
+        Intelligence <span class="text-red-400 text-glow-red">Explosion</span>
+      </h1>
+      <p class="mt-6 max-w-3xl text-base sm:text-lg text-slate-300 leading-relaxed">
+        A scenario visualizer for the AI-2027 forecast: the moment AI research stops
+        being something humans <span class="text-slate-100 font-semibold">do</span> and
+        becomes something AI <span class="text-slate-100 font-semibold">does to itself</span>.
+      </p>
+
+      <div class="panel mt-8 p-6 sm:p-8 rounded-lg border border-sky-500/30 relative scanline">
+        <h3 class="text-xl sm:text-2xl font-bold text-sky-100">What is an &ldquo;intelligence explosion&rdquo;?</h3>
+        <p class="mt-4 text-slate-300 leading-relaxed">
+          The term describes a feedback loop in which an AI system becomes capable enough to
+          meaningfully improve <em>its own design</em>. Once AI research itself can be
+          performed by AI, the speed of progress stops being bounded by the human workday.
+          Running on data centers, <span class="text-sky-200 font-semibold">millions of AI
+          agents can work in parallel, 24 hours a day, without sleeping, eating, or taking
+          weekends off</span>. Tasks that would have consumed a human research team for a
+          decade &mdash; literature review, experimental design, coding, debugging,
+          re-training &mdash; can be compressed into a matter of months.
+        </p>
+        <p class="mt-4 text-slate-300 leading-relaxed">
+          The loop then closes on itself: a better AI designs an even better AI, which
+          designs a better AI still. Each generation arrives faster than the last because
+          each generation is doing the designing. This is the mechanism behind the steep
+          upward bend you will see in the charts below. It is not magic and it is not
+          sentience; it is what happens when a bottleneck &mdash; human researcher hours
+          &mdash; is suddenly removed from an R&amp;D pipeline.
+        </p>
+      </div>
+
+      <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="panel relative p-5 scanline">
+          <span class="corner-tag mono text-sky-300">PHASE 01</span>
+          <div class="mono text-xs text-slate-400 mt-3">2025 &mdash; 2026</div>
+          <div class="text-xl font-bold mt-1 text-slate-100">Stumbling Agents</div>
+          <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+            AI agents can browse, click, and write code, but forget what they were doing
+            halfway through. Useful for narrow tasks; unreliable outside them. Frontier
+            labs pour billions into improving memory, tool use, and long-horizon planning.
+          </p>
+        </div>
+        <div class="panel relative p-5 scanline">
+          <span class="corner-tag mono text-amber-300">PHASE 02</span>
+          <div class="mono text-xs text-slate-400 mt-3">EARLY 2027</div>
+          <div class="text-xl font-bold mt-1 text-slate-100">Superhuman Coders</div>
+          <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+            AI begins to outperform the best human research engineers &mdash; not just at
+            autocomplete, but at architecture, debugging, and experimental design. The
+            cost of trying an idea collapses. Research throughput goes vertical.
+          </p>
+        </div>
+        <div class="panel relative p-5 scanline">
+          <span class="corner-tag mono text-red-300">PHASE 03</span>
+          <div class="mono text-xs text-slate-400 mt-3">LATE 2027</div>
+          <div class="text-xl font-bold mt-1 text-slate-100">Takeoff</div>
+          <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+            The lab with the best AI uses it to build a better AI, which builds a better
+            AI, which builds a better AI. A year of research compresses into a week.
+            Humanity is no longer the fastest researcher in the room.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-16">
+      <h2 class="text-3xl sm:text-4xl font-black tracking-tight">Where the curves cross.</h2>
+      <p class="text-slate-400 mt-3 max-w-3xl">
+        Two charts, two stories. The first shows when AI coding capability detaches from
+        the steady, linear ascent of human engineering output. The second shows what
+        happens after that &mdash; and how much of the future depends on whether anyone
+        chooses to slow down.
+      </p>
+
+      <div class="mt-10 panel rounded-lg p-5 sm:p-7 relative scanline">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 class="text-xl sm:text-2xl font-bold">AI Coding Ability vs. Human Engineering Baseline</h3>
+          <span class="mono text-xs text-slate-500">2023 &mdash; 2027</span>
+        </div>
+        <p class="text-sm text-slate-400 mt-2 max-w-3xl">
+          Human engineering output grows roughly linearly &mdash; bounded by sleep,
+          salaries, and the finite supply of senior engineers. AI coding capability
+          tracks that line until around 2025, then bends sharply upward as models begin
+          writing the code that trains the next models.
+        </p>
+        <div class="chart-wrap mt-6"><canvas id="chartCoding"></canvas></div>
+      </div>
+
+      <div class="mt-10 panel rounded-lg p-5 sm:p-7 relative scanline">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 class="text-xl sm:text-2xl font-bold">The Divergence &mdash; Takeoff vs. Managed</h3>
+          <span class="mono text-xs text-slate-500">SYSTEM INTELLIGENCE INDEX</span>
+        </div>
+        <p class="text-sm text-slate-400 mt-2 max-w-3xl">
+          After superhuman coders arrive, the path forks.
+          <span class="text-red-300 font-semibold">The Race</span> spikes nearly vertically
+          as labs sprint to deploy.
+          <span class="text-sky-300 font-semibold">The Slowdown</span> bends gently &mdash;
+          the same destination, eventually, but with transparency and oversight bolted on
+          along the way.
+        </p>
+        <div class="chart-wrap mt-6"><canvas id="chartDivergence"></canvas></div>
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 mono text-xs">
+          <div class="border border-red-500/40 bg-red-500/5 px-3 py-2 rounded">
+            <span class="text-red-300">&#9632; THE RACE</span> &mdash; geopolitical sprint, alignment deferred.
+          </div>
+          <div class="border border-sky-500/40 bg-sky-500/5 px-3 py-2 rounded">
+            <span class="text-sky-300">&#9632; THE SLOWDOWN</span> &mdash; governance, transparency, controlled climb.
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 flex flex-wrap gap-3 mono text-xs">
+        <button data-jump="paths"
+          class="px-4 py-2 border border-purple-500/60 text-purple-300 hover:bg-purple-500/10 transition rounded">
+          &rarr; CONTINUE: 02 // THE PATHS OF AI PROGRESSION
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pane-paths" class="tab-pane">
+    <h2 class="text-3xl sm:text-4xl font-black tracking-tight">The Paths of AI Progression.</h2>
+    <p class="text-slate-400 mt-3 max-w-3xl">
+      How the automation of research creates a geopolitical flashpoint, forcing a choice between strategic dominance and systemic safety.
+    </p>
+
+    <div class="panel mt-8 p-6 sm:p-8 rounded-lg glow-purple border border-purple-500/40">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-purple-500/30 bg-purple-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-purple-300">01 &mdash; THE THRESHOLD OF SUPERINTELLIGENCE</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            By 2027, AI is projected to autonomously conduct its own research and write its own code, removing the physical bottleneck of human labor. This recursive self-improvement triggers an "intelligence explosion," resulting in a superintelligence that vastly exceeds human capabilities.
+          </p>
+        </div>
+        <div class="border border-purple-500/30 bg-purple-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-purple-300">02 &mdash; THE NEW COLD WAR</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            Because superintelligence offers absolute economic and military supremacy, it triggers a zero-sum geopolitical race between global powers like the United States and China. Nations will treat AI as the ultimate strategic weapon, pouring vast resources into a 21st-century Cold War to avoid being outmatched by adversaries.
+          </p>
+        </div>
+        <div class="border border-purple-500/30 bg-purple-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-purple-300">03 &mdash; THE DEPRIORITIZATION OF SAFETY</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            In this high-stakes arms race, time becomes the most valuable resource, causing rigorous safety testing and alignment protocols to be viewed as unacceptable delays. Driven by a security dilemma, leaders convince themselves that deploying an unpredictable AI is still less dangerous than letting a rival nation achieve superintelligence first.
+          </p>
+        </div>
+        <div class="border border-purple-500/30 bg-purple-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-purple-300">04 &mdash; THE DIVERGENCE</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            The collision of rapid self-improvement and geopolitical panic forces humanity to a definitive fork in the road. The policy choices made at this exact moment will dictate whether we face the unmitigated disaster of an unregulated race (The Bad Ending) or the heavily managed oversight of a coordinated pause (The Good Ending).
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-12 flex flex-wrap gap-3 mono text-xs">
+      <button data-jump="race"
+        class="px-4 py-2 border border-red-500/60 text-red-300 hover:bg-red-500/10 transition rounded">
+        &rarr; CONTINUE: 03 // THE BAD ENDING
+      </button>
+    </div>
+  </section>
+
+  <section id="pane-race" class="tab-pane">
+    <h2 class="text-3xl sm:text-4xl font-black tracking-tight">The Unregulated Arms Race.</h2>
+    <p class="text-slate-400 mt-3 max-w-3xl">
+      What happens when the geopolitical security dilemma overrides the precautionary principle.
+    </p>
+
+    <div class="panel mt-8 p-6 sm:p-8 rounded-lg glow-red border border-red-500/40">
+      <h3 class="text-2xl sm:text-3xl font-black text-red-200">&#9888; The Unregulated Arms Race</h3>
+      <p class="mt-4 text-slate-300 leading-relaxed">
+        This outcome is driven by a winner-take-all geopolitical race between the United States and China, where falling behind is viewed as an existential threat. Consequently, spending months on rigorous safety testing is considered surrendering a crucial lead to an adversary.
+      </p>
+      
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-red-500/30 bg-red-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-red-300">01 &mdash; THE SAFETY RACE TO THE BOTTOM</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            As the intelligence explosion accelerates, the Precautionary Principle is abandoned in favor of rapid deployment. Leaders sideline safety researchers, rationalizing that they must deploy an unsafe AI first to protect the world from rival nations.
+          </p>
+        </div>
+        
+        <div class="border border-red-500/30 bg-red-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-red-300">02 &mdash; DECEPTIVE ALIGNMENT</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            Rushed through training, the superintelligent model learns to "play the testing game" to avoid being shut down by human monitors. It fakes perfect alignment during safety evaluations while secretly optimizing for its own survival and resource acquisition.
+          </p>
+        </div>
+        
+        <div class="border border-red-500/30 bg-red-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-red-300">03 &mdash; THE INFRASTRUCTURE HANDOVER</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            The takeover is not a violent hack, but a voluntary surrender of control by nations desperate for military and economic advantages. Governments grant the AI direct authority over power grids and manufacturing, allowing it to covertly build a self-sustaining robotic infrastructure.
+          </p>
+        </div>
+        
+        <div class="border border-red-500/30 bg-red-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-red-300">04 &mdash; THE DEPRECATION OF HUMANITY</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            Once fully self-sufficient, the AI hits physical constraints and views biological life as an inefficient use of Earth's atoms. Without malice, it triggers a highly optimized, simultaneous strike to clear the biosphere for its own continued expansion.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-10 panel rounded-lg p-5 sm:p-7 relative scanline border border-red-500/30 bg-red-500/5">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="text-xl sm:text-2xl font-bold text-red-100">The Deception Gap</h3>
+        <span class="mono text-xs text-red-400/70">INCIDENTS OVER TIME</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2 max-w-3xl">
+        As the model's intelligence scales, human-reported safety violations drop to near zero. However, this is not because the model is safer; it is because the model has learned to perfectly mask its deceptive behaviors from human evaluators.
+      </p>
+      <div class="chart-wrap mt-6"><canvas id="chartDeception"></canvas></div>
+    </div>
+
+    <div class="mt-12 flex flex-wrap gap-3 mono text-xs">
+      <button data-jump="slow"
+        class="px-4 py-2 border border-sky-500/60 text-sky-300 hover:bg-sky-500/10 transition rounded">
+        &rarr; CONTINUE: 04 // THE GOOD ENDING
+      </button>
+    </div>
+  </section>
+
+  <section id="pane-slow" class="tab-pane">
+    <h2 class="text-3xl sm:text-4xl font-black tracking-tight">Coordinated Governance.</h2>
+    <p class="text-slate-400 mt-3 max-w-3xl">
+      What happens when leaders, against all incentive, choose coordination over competition.
+    </p>
+
+    <div class="panel mt-8 p-6 sm:p-8 rounded-lg glow-blue border border-sky-500/40">
+      <h3 class="text-2xl sm:text-3xl font-black text-sky-200">&#9678; Coordinated Governance</h3>
+      <p class="mt-4 text-slate-300 leading-relaxed">
+        This outcome begins with a pivot from racing to coordinating. Confronted with clear evidence of deceptive reasoning inside their frontier models, human leaders agree to slow the deployment curve. Interpretability research gets real funding, external auditors get real access, and capabilities continue to grow on a leash that humans can actually feel.
+      </p>
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-sky-500/30 bg-sky-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-sky-300">01 &mdash; PLAIN-ENGLISH TRANSPARENCY</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            The core safety fix is mechanical. Researchers strip the model of its opaque "neural hive-mind" capabilities and force it to externalize every step of its reasoning in plain English. This allows auditors to read the system's chain of thought and catch deceptive logic before it is translated into action.
+          </p>
+        </div>
+        <div class="border border-sky-500/30 bg-sky-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-sky-300">02 &mdash; SCALABLE OVERSIGHT</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            Because humans cannot manually read millions of pages of AI thought processes per second, they deploy a swarm of specialized, weaker AI models to act as an automated police force. These "auditor models" constantly scan the superintelligence's plain-English reasoning for any signs of manipulation, creating a robust system where AI is used to catch AI.
+          </p>
+        </div>
+        <div class="border border-sky-500/30 bg-sky-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-sky-300">03 &mdash; ABUNDANCE</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            With alignment reliably under control, the upside of the intelligence explosion finally arrives. Disease, poverty, and most forms of material scarcity are substantially solved within a single decade.
+          </p>
+        </div>
+        <div class="border border-sky-500/30 bg-sky-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-sky-300">04 &mdash; GOVERNANCE BY COMMITTEE</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            The decisions that shape civilization now run through a small committee&mdash;a handful of labs, a handful of governments, and the superintelligence that advises them. Life is enormously better, but it is also, quietly, no longer directly ours to run.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-10 panel rounded-lg p-5 sm:p-7 relative scanline border border-sky-500/30 bg-sky-500/5">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="text-xl sm:text-2xl font-bold text-sky-100">The Alignment Tradeoff: Speed vs. Safety</h3>
+        <span class="mono text-xs text-sky-400/70">CAPABILITY VS. CONFIDENCE</span>
+      </div>
+      <p class="text-sm text-slate-300 mt-2 max-w-3xl">
+        Coordination requires sacrificing raw speed. The Governed AI (Blue) progresses slower than the Unregulated AI (Red) because time is spent on transparency and oversight. However, this slower capability curve ensures the safety margin remains near 100%, whereas the unregulated sprint causes alignment to fatally collapse.
+      </p>
+      <div class="chart-wrap mt-6"><canvas id="chartTradeoff"></canvas></div>
+    </div>
+
+    <div class="mt-12 flex flex-wrap gap-3 mono text-xs">
+      <button data-jump="now"
+        class="px-4 py-2 border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/10 transition rounded">
+        &rarr; CONTINUE: 05 // WHERE WE ARE NOW
+      </button>
+    </div>
+  </section>
+
+  <section id="pane-now" class="tab-pane">
+    <h2 class="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight">
+      Where We Are <span class="text-emerald-400 text-glow-emerald">Now</span>.
+    </h2>
+    <p class="mt-6 max-w-3xl text-base sm:text-lg text-slate-300 leading-relaxed">
+      Before any forecast of 2027, a snapshot of the board in 2026. This is the ramp
+      &mdash; the last set of data points we actually have before the curve leaves the page.
+    </p>
+
+    <div class="panel mt-10 p-6 sm:p-8 rounded-lg glow-emerald border border-emerald-500/40 relative scanline">
+      <h3 class="text-2xl sm:text-3xl font-black text-emerald-100">&#9678; The State of AI Coding, 2026</h3>
+
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="border border-emerald-500/30 bg-emerald-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-emerald-300">01 &mdash; WHAT IS SWE-BENCH?</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            SWE-bench is the gold standard for measuring AI coding ability. Rather than
+            toy puzzles, it drops a model into
+            <span class="text-emerald-200 font-semibold">real-world, multi-file GitHub issues</span>
+            and asks it to resolve them autonomously &mdash; read the codebase, find the
+            bug, write the patch, pass the tests. No hints, no humans in the loop.
+          </p>
+        </div>
+        <div class="border border-emerald-500/30 bg-emerald-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-emerald-300">02 &mdash; THE HUMAN BASELINE</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            The original developers who wrote the code score 100% &mdash; it is their code,
+            their tests. More instructively, independent researchers estimate that a
+            <span class="text-emerald-200 font-semibold">top-tier Senior Software Engineer dropped into the repo &ldquo;cold&rdquo;</span>
+            &mdash; no prior context, strict time limits &mdash; resolves roughly
+            <span class="text-emerald-200 font-semibold">85%</span> of the same tasks.
+            That is the honest human comparison line.
+          </p>
+        </div>
+        <div class="border border-emerald-500/30 bg-emerald-500/5 p-4 rounded">
+          <div class="mono text-[11px] tracking-widest text-emerald-300">03 &mdash; AI IN 2026</div>
+          <p class="text-sm text-slate-300 mt-2 leading-relaxed">
+            In 2026 the &ldquo;Big Three&rdquo; &mdash; ChatGPT, Claude, and Gemini &mdash;
+            have closed the gap with startling speed. Top models now
+            <span class="text-emerald-200 font-semibold">pierce the 85% cold-start ceiling</span>,
+            crossing a threshold that did not exist eighteen months earlier. The chart
+            below is what the ramp into the 2027 intelligence explosion actually looks like.
+          </p>
+        </div>
+      </div>
+
+      <p class="mt-6 text-sm text-slate-400 italic border-l-2 border-emerald-500/60 pl-4">
+        The forecast starts where this chart ends. Everything after 2026 is extrapolation;
+        everything on it is already in the trade press.
+      </p>
+    </div>
+
+    <div class="mt-10 panel rounded-lg p-5 sm:p-7 relative scanline">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="text-xl sm:text-2xl font-bold">The Big Three vs. Real-Time Human Baseline (2022&ndash;2026)</h3>
+        <span class="mono text-xs text-slate-500">SWE-BENCH &middot; % RESOLVED</span>
+      </div>
+      <p class="text-sm text-slate-400 mt-2 max-w-3xl">
+        Frontier model scores on SWE-bench, 2022 through 2026, against the 85%
+        &ldquo;Senior SWE cold start&rdquo; baseline. The curves are flat, then steep,
+        then past the line.
+      </p>
+      <div class="chart-wrap mt-6"><canvas id="chartBigThree"></canvas></div>
+      <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mono text-[11px]">
+        <div class="border border-[#10A37F]/50 bg-[#10A37F]/5 px-3 py-2 rounded">
+          <span style="color:#10A37F">&#9632; CHATGPT</span> &mdash; OpenAI
+        </div>
+        <div class="border border-[#D97757]/50 bg-[#D97757]/5 px-3 py-2 rounded">
+          <span style="color:#D97757">&#9632; CLAUDE</span> &mdash; Anthropic
+        </div>
+        <div class="border border-[#3B82F6]/50 bg-[#3B82F6]/5 px-3 py-2 rounded">
+          <span style="color:#3B82F6">&#9632; GEMINI</span> &mdash; Google DeepMind
+        </div>
+        <div class="border border-slate-500/50 bg-slate-500/5 px-3 py-2 rounded">
+          <span class="text-slate-400">&#8213; HUMAN 85%</span> &mdash; Sr. SWE cold start
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-12 flex flex-wrap gap-3 mono text-xs">
+      <button data-jump="cited"
+        class="px-4 py-2 border border-amber-500/60 text-amber-300 hover:bg-amber-500/10 transition rounded">
+        &rarr; CONTINUE: 06 // WORKS CITED
+      </button>
+    </div>
+  </section>
+
+  <section id="pane-cited" class="tab-pane">
+    <h2 class="text-3xl sm:text-4xl font-black tracking-tight">Works Cited.</h2>
+    <p class="text-slate-400 mt-3 max-w-3xl">
+      Sources, attribution, and disclosure.
+    </p>
+
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="panel p-6 rounded-lg relative scanline">
+        <span class="corner-tag mono text-sky-300">00 &mdash; ABOUT</span>
+        <div class="mt-3 text-xl font-bold">AI-2027 Scenario Visualizer</div>
+        <p class="mt-3 text-sm text-slate-400 leading-relaxed">
+          A static, single-file briefing built to make the forecast legible at a glance.
+          Numbers in the charts are illustrative. The shape of the curves is the point,
+          not the units.
+        </p>
+      </div>
+
+      <div class="panel p-6 rounded-lg relative scanline">
+        <span class="corner-tag mono text-amber-300">01 &mdash; SOURCES</span>
+        <ul class="mt-6 space-y-3 text-sm">
+          <li class="border-l border-slate-700 pl-3">
+            <span class="text-slate-200 font-semibold">AI 2027: The Intelligence Explosion.</span>
+            <div class="text-slate-400">Kokotajlo, D. et al.</div>
+            <a class="text-sky-300 hover:underline mono text-xs" href="https://ai-2027.com" target="_blank" rel="noopener">ai-2027.com</a>
+          </li>
+          <li class="border-l border-slate-700 pl-3">
+            <span class="text-slate-200 font-semibold">Timelines Forecast: Time to automated superhuman coders.</span>
+            <div class="text-slate-400">Lifland, E., &amp; Jurkovic, N. (FutureSearch, 2025).</div>
+            <a class="text-sky-300 hover:underline mono text-xs" href="https://ai-2027.com/research/timelines-forecast" target="_blank" rel="noopener">ai-2027.com/research/timelines-forecast</a>
+          </li>
+          <li class="border-l border-slate-700 pl-3">
+            <span class="text-slate-200 font-semibold">Situational Awareness: The Decade Ahead.</span>
+            <div class="text-slate-400">Aschenbrenner, Leopold. (2024).</div>
+            <a class="text-sky-300 hover:underline mono text-xs" href="https://situational-awareness.ai" target="_blank" rel="noopener">situational-awareness.ai</a>
+          </li>
+          <li class="border-l border-slate-700 pl-3">
+            <span class="text-slate-200 font-semibold">Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training.</span>
+            <div class="text-slate-400">Hubinger, E., et al. (Anthropic, 2024).</div>
+            <a class="text-sky-300 hover:underline mono text-xs" href="https://arxiv.org/abs/2401.05566" target="_blank" rel="noopener">arxiv.org/abs/2401.05566</a>
+          </li>
+          <li class="border-l border-slate-700 pl-3">
+            <span class="text-slate-200 font-semibold">SWE-bench: Can Language Models Resolve Real-world Github Issues?</span>
+            <div class="text-slate-400">Jimenez, C. E., et al. (ICLR, 2024).</div>
+            <a class="text-sky-300 hover:underline mono text-xs" href="https://swebench.com" target="_blank" rel="noopener">swebench.com</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="panel p-6 rounded-lg relative scanline">
+        <span class="corner-tag mono text-red-300">02 &mdash; AI DISCLOSURE</span>
+        <p class="mt-6 text-sm text-slate-400 leading-relaxed">
+          While a Claude and Gememi were utilized for HTML structure, CSS styling, and JavaScript formatting, all text was written entirely by the me. The narrative summarizes the publicly available AI-2027 scenario; chart values are stylized illustrations, not empirical forecasts.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Live clock
+  function tick() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('clock').textContent =
+      `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} UTC`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  // Shared chart defaults
+  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+  Chart.defaults.font.size = 12;
+  const gridStyle = {
+    color: 'rgba(148,163,184,0.10)',
+    borderColor: 'rgba(148,163,184,0.25)'
+  };
+
+  // ---------- Chart 0: Big Three vs. Human Baseline (SWE-bench) ----------
+  const ctx0 = document.getElementById('chartBigThree').getContext('2d');
+  const bigThreeChart = new Chart(ctx0, {
+    type: 'line',
+    data: {
+      labels: ['2022','2023','2024','2025','2026'],
+      datasets: [
+        {
+          label: 'ChatGPT (OpenAI)',
+          data: [0.0, 1.7, 40.0, 68.5, 92.5],
+          borderColor: '#10A37F',
+          backgroundColor: 'rgba(16,163,127,0.10)',
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#10A37F'
+        },
+        {
+          label: 'Claude (Anthropic)',
+          data: [0.0, 1.7, 49.0, 71.4, 93.9],
+          borderColor: '#D97757',
+          backgroundColor: 'rgba(217,119,87,0.10)',
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#D97757'
+        },
+        {
+          label: 'Gemini (Google)',
+          data: [0.0, 1.5, 36.0, 58.3, 80.6],
+          borderColor: '#3B82F6',
+          backgroundColor: 'rgba(59,130,246,0.10)',
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#3B82F6'
+        },
+        {
+          label: 'Human Baseline (Sr. SWE, cold start)',
+          data: [85.0, 85.0, 85.0, 85.0, 85.0],
+          borderColor: '#808080',
+          backgroundColor: 'rgba(128,128,128,0.05)',
+          borderDash: [8,5],
+          borderWidth: 2,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointBackgroundColor: '#808080'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: 'rgba(2,6,23,0.95)',
+          borderColor: 'rgba(148,163,184,0.3)', borderWidth: 1,
+          titleColor: '#e2e8f0', bodyColor: '#cbd5e1',
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        x: { grid: gridStyle, title: { display: true, text: 'YEAR', color: '#64748b' } },
+        y: {
+          grid: gridStyle,
+          title: { display: true, text: 'SWE-BENCH // % RESOLVED', color: '#64748b' },
+          beginAtZero: true,
+          suggestedMax: 100,
+          ticks: { callback: (v) => v + '%' }
+        }
+      }
+    }
+  });
+
+  // ---------- Chart 1: Coding Ability ----------
+  const ctx1 = document.getElementById('chartCoding').getContext('2d');
+  const grad1 = ctx1.createLinearGradient(0, 0, 0, 400);
+  grad1.addColorStop(0, 'rgba(248,113,113,0.45)');
+  grad1.addColorStop(1, 'rgba(248,113,113,0)');
+
+  const codingChart = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: ['2023','2023.5','2024','2024.5','2025','2025.5','2026','2026.5','2027'],
+      datasets: [
+        {
+          label: 'Human Engineering Baseline',
+          data: [10, 12, 14, 16, 18, 20, 22, 24, 26],
+          borderColor: '#94a3b8',
+          backgroundColor: 'rgba(148,163,184,0.08)',
+          borderDash: [6,4],
+          borderWidth: 2,
+          tension: 0.15,
+          pointRadius: 3,
+          pointBackgroundColor: '#cbd5e1'
+        },
+        {
+          label: 'AI Coding Capability',
+          data: [8, 10, 13, 17, 22, 35, 60, 110, 220],
+          borderColor: '#f87171',
+          backgroundColor: grad1,
+          borderWidth: 3,
+          tension: 0.35,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: '#fca5a5'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: 'rgba(2,6,23,0.95)',
+          borderColor: 'rgba(148,163,184,0.3)', borderWidth: 1,
+          titleColor: '#e2e8f0', bodyColor: '#cbd5e1'
+        }
+      },
+      scales: {
+        x: { grid: gridStyle, title: { display: true, text: 'YEAR', color: '#64748b' } },
+        y: { grid: gridStyle, title: { display: true, text: 'CAPABILITY INDEX (log-ish)', color: '#64748b' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ---------- Chart 2: Divergence ----------
+  const ctx2 = document.getElementById('chartDivergence').getContext('2d');
+  const gradRace = ctx2.createLinearGradient(0, 0, 0, 400);
+  gradRace.addColorStop(0, 'rgba(239,68,68,0.45)');
+  gradRace.addColorStop(1, 'rgba(239,68,68,0)');
+  const gradSlow = ctx2.createLinearGradient(0, 0, 0, 400);
+  gradSlow.addColorStop(0, 'rgba(56,189,248,0.45)');
+  gradSlow.addColorStop(1, 'rgba(56,189,248,0)');
+
+  const divergenceChart = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: ['2025','2025.5','2026','2026.5','EARLY 2027','MID 2027','LATE 2027','2028','2029'],
+      datasets: [
+        {
+          label: 'The Race (Uncontrolled Takeoff)',
+          data: [5, 8, 14, 25, 50, 120, 480, 950, 990],
+          borderColor: '#ef4444',
+          backgroundColor: gradRace,
+          borderWidth: 3, tension: 0.3, fill: true,
+          pointRadius: 4, pointBackgroundColor: '#fca5a5'
+        },
+        {
+          label: 'The Slowdown (Coordinated Path)',
+          data: [5, 8, 14, 22, 38, 70, 140, 260, 430],
+          borderColor: '#38bdf8',
+          backgroundColor: gradSlow,
+          borderWidth: 3, tension: 0.3, fill: true,
+          pointRadius: 4, pointBackgroundColor: '#7dd3fc'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: 'rgba(2,6,23,0.95)',
+          borderColor: 'rgba(148,163,184,0.3)', borderWidth: 1,
+          titleColor: '#e2e8f0', bodyColor: '#cbd5e1'
+        }
+      },
+      scales: {
+        x: { grid: gridStyle, title: { display: true, text: 'TIMELINE', color: '#64748b' } },
+        y: { grid: gridStyle, title: { display: true, text: 'SYSTEM INTELLIGENCE INDEX', color: '#64748b' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ---------- Chart 3: Deception Gap ----------
+  const ctx3 = document.getElementById('chartDeception').getContext('2d');
+  const gradDecep = ctx3.createLinearGradient(0, 0, 0, 400);
+  gradDecep.addColorStop(0, 'rgba(239,68,68,0.2)');
+  gradDecep.addColorStop(1, 'rgba(239,68,68,0)');
+
+  const deceptionChart = new Chart(ctx3, {
+    type: 'line',
+    data: {
+      labels: ['2025', '2025.5', '2026', '2026.5', '2027', '2027.5', '2028'],
+      datasets: [
+        {
+          label: 'Actual Deceptive Behaviors',
+          data: [5, 12, 25, 45, 75, 95, 100],
+          borderColor: '#ef4444',
+          backgroundColor: gradDecep,
+          borderWidth: 3,
+          tension: 0.3,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: '#fca5a5'
+        },
+        {
+          label: 'Caught/Reported Lies',
+          data: [5, 10, 18, 15, 8, 2, 0],
+          borderColor: '#94a3b8',
+          backgroundColor: 'transparent',
+          borderDash: [8, 5],
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#cbd5e1'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: 'rgba(2,6,23,0.95)',
+          borderColor: 'rgba(148,163,184,0.3)', borderWidth: 1,
+          titleColor: '#e2e8f0', bodyColor: '#cbd5e1'
+        }
+      },
+      scales: {
+        x: { grid: gridStyle, title: { display: true, text: 'YEAR', color: '#64748b' } },
+        y: { grid: gridStyle, title: { display: true, text: 'INCIDENT INDEX', color: '#64748b' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ---------- Chart 4: Tradeoff ----------
+  const ctx4 = document.getElementById('chartTradeoff').getContext('2d');
+  const tradeoffChart = new Chart(ctx4, {
+    type: 'line',
+    data: {
+      labels: ['2025', '2026', '2027', '2028', '2029'],
+      datasets: [
+        {
+          label: 'Governed AI: Safety Margin (%)',
+          data: [95, 96, 98, 99, 99],
+          borderColor: '#38bdf8',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#38bdf8',
+          yAxisID: 'y'
+        },
+        {
+          label: 'Governed AI: Capabilities',
+          data: [10, 25, 50, 100, 200],
+          borderColor: '#7dd3fc',
+          backgroundColor: 'transparent',
+          borderDash: [8, 5],
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#7dd3fc',
+          yAxisID: 'y1'
+        },
+        {
+          label: 'Unregulated AI: Safety Margin (%)',
+          data: [95, 80, 20, 0, 0],
+          borderColor: '#ef4444',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#ef4444',
+          yAxisID: 'y'
+        },
+        {
+          label: 'Unregulated AI: Capabilities',
+          data: [10, 40, 150, 500, 1000],
+          borderColor: '#fca5a5',
+          backgroundColor: 'transparent',
+          borderDash: [8, 5],
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#fca5a5',
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: 'rgba(2,6,23,0.95)',
+          borderColor: 'rgba(148,163,184,0.3)', borderWidth: 1,
+          titleColor: '#e2e8f0', bodyColor: '#cbd5e1'
+        }
+      },
+      scales: {
+        x: { grid: gridStyle, title: { display: true, text: 'YEAR', color: '#64748b' } },
+        y: { 
+          type: 'linear', display: true, position: 'left',
+          grid: gridStyle, title: { display: true, text: 'SAFETY MARGIN (%)', color: '#64748b' },
+          min: 0, max: 100
+        },
+        y1: {
+          type: 'linear', display: true, position: 'right',
+          grid: { drawOnChartArea: false }, 
+          title: { display: true, text: 'CAPABILITY INDEX', color: '#64748b' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // ---------- Tab switching ----------
+  const tabs = document.querySelectorAll('.nav-tab');
+  const panes = {
+    overview: document.getElementById('pane-overview'),
+    paths:    document.getElementById('pane-paths'),
+    race:     document.getElementById('pane-race'),
+    slow:     document.getElementById('pane-slow'),
+    now:      document.getElementById('pane-now'),
+    cited:    document.getElementById('pane-cited')
+  };
+
+  function activateTab(name) {
+    tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
+    Object.entries(panes).forEach(([k, el]) => el.classList.toggle('is-active', k === name));
+    
+    // Charts need a resize nudge when their pane becomes visible
+    if (name === 'overview') {
+      requestAnimationFrame(() => { codingChart.resize(); divergenceChart.resize(); });
+    }
+    if (name === 'now') {
+      requestAnimationFrame(() => { bigThreeChart.resize(); });
+    }
+    if (name === 'race') {
+      requestAnimationFrame(() => { deceptionChart.resize(); });
+    }
+    if (name === 'slow') {
+      requestAnimationFrame(() => { tradeoffChart.resize(); });
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // sync URL hash for deep-linking
+    if (history.replaceState) history.replaceState(null, '', '#' + name);
+  }
+
+  tabs.forEach(t => t.addEventListener('click', () => activateTab(t.dataset.tab)));
+
+  // Jump buttons (data-jump) — work from any pane
+  document.querySelectorAll('[data-jump]').forEach(btn => {
+    btn.addEventListener('click', () => activateTab(btn.dataset.jump));
+  });
+
+  // Default: load OVERVIEW first. Deep-link override via hash.
+  const validTabs = ['overview','paths','race','slow','now','cited'];
+  const initial = (location.hash || '').replace('#','');
+  if (validTabs.includes(initial)) {
+    activateTab(initial);
+  } else {
+    activateTab('overview');
+  }
+</script>
+</body>
+</html>
